@@ -1,86 +1,64 @@
-import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  FlatList,
-  Image,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Fragment } from "react";
+import {FlatList, Text, View} from 'react-native'
+import {SafeAreaView} from "react-native-safe-area-context";
+import useAppwrite from "@/lib/useAppwrite";
+import {getCategories, getMenu} from "@/lib/appwrite";
+import {useLocalSearchParams} from "expo-router";
+import {useEffect} from "react";
+import CartButton from "@/components/CartButton";
 import cn from "clsx";
+import MenuCard from "@/components/MenuCard";
+import {MenuItem} from "@/type";
 
-import { images, offers } from "@/constants";
+import Filter from "@/components/Filter";
+import SearchBar from "@/components/SearchBar";
 
-export default function Index() {
+const Search = () => {
+    const { category, query } = useLocalSearchParams<{query: string; category: string}>()
 
-  return (
-    <SafeAreaView className="flex-1 bg-white">
-      <FlatList
-        data={offers}
-        renderItem={({ item, index }) => {
-          const isEven = index % 2 === 0;
+    const { data, refetch, loading } = useAppwrite({ fn: getMenu, params: { category,  query,  limit: 6, } });
+    const { data: categories } = useAppwrite({ fn: getCategories });
 
-          return (
-            <View>
-              <Pressable
-                className={cn(
-                  "offer-card",
-                  isEven ? "flex-row-reverse" : "flex-row"
-                )}
-                style={{ backgroundColor: item.color }}
-                android_ripple={{ color: "#fffff22" }}
-              >
-                {({ pressed }) => (
-                  <Fragment>
-                    <View className="h-full w-1/2">
-                      <Image
-                        source={item.image}
-                        className="size-full"
-                        resizeMode="contain"
-                      />
+    useEffect(() => {
+        refetch({ category, query, limit: 6})
+    }, [category, query]);
+
+    return (
+        <SafeAreaView className="bg-white h-full">
+            <FlatList
+                data={data}
+                renderItem={({ item, index }) => {
+                    const isFirstRightColItem = index % 2 === 0;
+
+                    return (
+                        <View className={cn("flex-1 max-w-[48%]", !isFirstRightColItem ? 'mt-10': 'mt-0')}>
+                        </View>
+                    )
+                }}
+                keyExtractor={item => item.$id}
+                numColumns={2}
+                columnWrapperClassName="gap-7"
+                contentContainerClassName="gap-7 px-5 pb-32"
+                ListHeaderComponent={() => (
+                    <View className="my-5 gap-5">
+                        <View className="flex-between flex-row w-full">
+                            <View className="flex-start">
+                                <Text className="small-bold uppercase text-primary">Search</Text>
+                                <View className="flex-start flex-row gap-x-1 mt-0.5">
+                                    <Text className="paragraph-semibold text-dark-100">Find your favorite food</Text>
+                                </View>
+                            </View>
+
+                            <CartButton />
+                        </View>
+
+                        <SearchBar />
+
                     </View>
-
-                    <View
-                      className={cn(
-                        "offer-card__info",
-                        isEven ? "pl-10" : "pr-10"
-                      )}
-                    >
-                      <Text className="h1-bold text-white leading-tight">
-                        {item.title}
-                      </Text>
-                      <Image
-                        source={images.arrowRight}
-                        className="size-10"
-                        resizeMode="contain"
-                        tintColor="#ffffff"
-                      />
-                    </View>
-                  </Fragment>
                 )}
-              </Pressable>
-            </View>
-          );
-        }}
-        contentContainerClassName="pb-28 px-5"
-        ListHeaderComponent={() => (
-          <View className="flex-between flex-row w-full my-5">
-            <View className="flex-start">
-              <Text className="small-bold text-primary">DELIVER TO</Text>
-              <TouchableOpacity className="flex-center flex-row gap-x-1 mt-0.5">
-                <Text className="paragraph-bold text-dark-100">Croatia</Text>
-                <Image
-                  source={images.arrowDown}
-                  className="size-3"
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
-            </View>
-            <Text>Cart</Text>
-          </View>
-        )}
-      />
-    </SafeAreaView>
-  );
+                ListEmptyComponent={() => !loading && <Text>No results</Text>}
+            />
+        </SafeAreaView>
+    )
 }
+
+export default Search
